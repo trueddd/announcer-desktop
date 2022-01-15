@@ -60,7 +60,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi)
             packageName = "announcer-desktop"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             modules("java.sql")
             windows {
                 upgradeUuid = "6889a4c7-534e-4f03-b768-2b460ff67ec1"
