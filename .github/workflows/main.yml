@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: 1.8
+          distribution: 'zulu'
       - name: Fetch sources
         uses: actions/checkout@v2
       - name: Build Msi file
