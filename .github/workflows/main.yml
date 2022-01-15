@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  msi-deploy:
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java
+        uses: actions/setup-java@v2
+      - name: Fetch sources
+        uses: actions/checkout@v2
+      - name: Build Msi file
+        run: ./gradlew packageMsi
+      - name: Publish to Github Packages
+        uses: actions/upload-artifact@v2.3.1
+        with:
+          name: announcer-setup
+          path: 'build/compose/binaries/main/msi/announcer-desktop-*.msi'
