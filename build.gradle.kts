@@ -3,25 +3,23 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version Versions.kotlin
+    kotlin("jvm") version Versions.Kotlin
     id("org.jetbrains.compose") version "1.0.1-rc2"
-    id("org.jetbrains.kotlin.plugin.serialization") version Versions.kotlin
+    id("org.jetbrains.kotlin.plugin.serialization") version Versions.Kotlin
 }
 
-group = "com.github.truetripled"
-version = "1.0"
+group = Config.PackageName
+version = Config.Version
 
 repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     google()
-    jcenter()
     maven("https://jitpack.io")
 }
 
 dependencies {
-//    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(compose.desktop.currentOs)
     implementation(compose.uiTooling)
     implementation(ktor("ktor-server-core"))
@@ -59,11 +57,11 @@ compose.desktop {
         mainClass = "MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi)
-            packageName = "announcer-desktop"
-            packageVersion = "1.0.1"
+            packageName = Config.Windows.PackageName
+            packageVersion = Config.Version
             modules("java.sql")
             windows {
-                upgradeUuid = "6889a4c7-534e-4f03-b768-2b460ff67ec1"
+                upgradeUuid = Config.Windows.UpgradeUuid
             }
         }
     }
