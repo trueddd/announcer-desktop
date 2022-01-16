@@ -10,11 +10,14 @@ import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import io.ktor.client.features.logging.*
 import io.ktor.client.features.websocket.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import server.Client
+import server.DiscordClient
 import server.DiscordClientImpl
 import server.TelegramClientImpl
+import ui.DiscordViewModel
 
 val repositoryModule = module {
 
@@ -43,9 +46,24 @@ val appModule = module {
         }
     }
 
-    factory<Client>(named(Client.Type.Discord)) { (discordInfo: DiscordBotInfo) -> DiscordClientImpl(discordInfo, get()) }
+    single<MessagesFlow> { MutableSharedFlow(extraBufferCapacity = 1) }
 
-    factory<Client>(named(Client.Type.Telegram)) { (telegramInfo: TelegramBotInfo) -> TelegramClientImpl(telegramInfo) }
+    single<DiscordClient>(named(Client.Type.Discord)) {
+        DiscordClientImpl(discordRepository = get())
+    }
+
+    factory<Client>(named(Client.Type.Telegram)) { (telegramInfo: TelegramBotInfo) ->
+        TelegramClientImpl(telegramInfo, telegramRepository = get())
+    }
 }
 
-val modules = arrayOf(repositoryModule, appModule)
+val viewModelModule = module {
+
+    factory { DiscordViewModel(messagesFlow = get(), discordRepository = get(), discordClient = get(named(Client.Type.Discord))) }
+}
+
+val modules = arrayOf(repositoryModule, appModule, viewModelModule)
+
+typealias MessageSource = String
+typealias Content = String
+typealias MessagesFlow = MutableSharedFlow<Pair<MessageSource, Content>>

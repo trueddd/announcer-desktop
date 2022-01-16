@@ -1,6 +1,5 @@
 package server
 
-import data.discord.DiscordBotInfo
 import db.DiscordRepository
 import dev.kord.common.entity.ChannelType
 import dev.kord.common.entity.DiscordChannel
@@ -17,7 +16,6 @@ import kotlin.coroutines.CoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DiscordClientImpl(
-    private val discordBotInfo: DiscordBotInfo,
     private val discordRepository: DiscordRepository,
 ) : DiscordClient, CoroutineScope {
 
@@ -31,11 +29,14 @@ class DiscordClientImpl(
     override val state: StateFlow<ConnectionState>
         get() = _state
 
+    private var guildId: String? = null
+    private var channelId: String? = null
+
     override fun send(message: String) {
         val client = kord ?: return
         launch {
-            if (discordBotInfo.channel?.id != null) {
-                client.rest.channel.createMessage(Snowflake(discordBotInfo.channel.id)) {
+            channelId?.let { id ->
+                client.rest.channel.createMessage(Snowflake(id)) {
                     content = message
                 }
             }
@@ -43,16 +44,17 @@ class DiscordClientImpl(
     }
 
     override fun start(): Flow<String> {
-        return channelFlow {
+        return channelFlow<String> {
             _state.value = ConnectionState.Connecting
             val client = try {
-                Kord(discordBotInfo.token).also { kord = it }
+                val token = discordRepository.getDiscordBotInfoFlow()
+                    .map { it.token }
+                    .first()
+                Kord(token).also { kord = it }
             } catch (e: Exception) {
                 _state.value = ConnectionState.Disconnected
                 throw e
             }
-            var guildId = discordBotInfo.guild?.id
-            var channelId = discordBotInfo.channel?.id
             discordRepository.getDiscordBotInfoFlow()
                 .onEach {
                     guildId = it.guild?.id
@@ -63,7 +65,7 @@ class DiscordClientImpl(
                 _state.value = ConnectionState.Connected
             }
             client.on<MessageCreateEvent> {
-                if (this.guildId?.value?.toString() != guildId) {
+                if (this.guildId?.value?.toString() != this@DiscordClientImpl.guildId || this@DiscordClientImpl.guildId == null) {
                     return@on
                 }
                 if (message.channelId.value.toString() != channelId) {
@@ -76,13 +78,12 @@ class DiscordClientImpl(
             }
             client.login()
             awaitClose {
-                _state.value = ConnectionState.Disconnected
                 kord = null
                 launch {
                     client.shutdown()
                 }
             }
-        }
+        }.onCompletion { _state.value = ConnectionState.Disconnected }
     }
 
     override suspend fun getGuilds(): List<Guild> {
@@ -94,6 +95,8 @@ class DiscordClientImpl(
         val client = kord ?: return emptyList()
         return client.rest.guild.getGuildChannels(guildId)
             .also { println("loaded: $it") }
-            .filter { it.type is ChannelType.GuildText }
+            .filter {
+                it.type is ChannelType.GuildText || it.type is ChannelType.GuildNews
+            }
     }
 }

@@ -1,6 +1,7 @@
 package server
 
 import data.telegram.TelegramBotInfo
+import db.TelegramRepository
 import dev.inmo.tgbotapi.extensions.api.bot.getMe
 import dev.inmo.tgbotapi.extensions.api.send.sendTextMessage
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContext
@@ -17,6 +18,7 @@ import kotlin.coroutines.CoroutineContext
 @OptIn(ExperimentalCoroutinesApi::class)
 class TelegramClientImpl(
     private val telegramBotInfo: TelegramBotInfo,
+    private val telegramRepository: TelegramRepository,
 ) : Client, CoroutineScope {
 
     override val coroutineContext: CoroutineContext by lazy {
@@ -29,17 +31,19 @@ class TelegramClientImpl(
 
     private var botBehaviour: BehaviourContext? = null
 
+    private var chatId = telegramBotInfo.channelId.toChatId()
+
+    private fun String.toChatId(): Long? {
+        return if (startsWith("-100"))
+            toLongOrNull()
+        else
+            "-100${this}".toLongOrNull()
+    }
+
     override fun send(message: String) {
         val client = botBehaviour ?: return
         launch {
-            val chatId = if (telegramBotInfo.channelId.startsWith("-100"))
-                telegramBotInfo.channelId.toLongOrNull()
-            else
-                "-100${telegramBotInfo.channelId}".toLongOrNull()
-            if (chatId == null) {
-                return@launch
-            }
-            client.sendTextMessage(ChatId(chatId), message)
+            chatId?.let { client.sendTextMessage(ChatId(it), message) }
         }
     }
 
@@ -51,8 +55,15 @@ class TelegramClientImpl(
                 val self = getMe()
                 botBehaviour = this
                 _state.value = ConnectionState.Connected
+                telegramRepository.getTelegramBotInfoFlow()
+                    .mapNotNull { it.channelId.toChatId() }
+                    .onEach { chatId = it }
+                    .launchIn(this@channelFlow)
                 onContentMessage { message ->
                     if (self.id == message.asFromUser()?.from?.id) {
+                        return@onContentMessage
+                    }
+                    if (message.chat.id.chatId != chatId) {
                         return@onContentMessage
                     }
                     message.content.asTextContent()?.text?.let { send(it) }
