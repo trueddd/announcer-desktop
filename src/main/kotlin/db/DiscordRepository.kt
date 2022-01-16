@@ -48,6 +48,17 @@ class DiscordRepository(database: Database) : BaseRepository(database) {
         }
     }
 
+    suspend fun dropGuild() {
+        dbCall(DiscordBotTable) {
+            DiscordBotTable.update {
+                it[guildId] = null
+                it[guildName] = null
+                it[channelId] = null
+                it[channelName] = null
+            }
+        }
+    }
+
     suspend fun updateChannel(id: String, name: String) {
         dbCall(DiscordBotTable) {
             DiscordBotTable.update {

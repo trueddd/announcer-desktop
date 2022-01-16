@@ -19,85 +19,24 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.discord.DiscordBotInfo
-import db.DiscordRepository
-import dev.kord.common.entity.DiscordChannel
-import dev.kord.common.entity.Snowflake
-import dev.kord.core.entity.Guild
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import org.koin.core.component.get
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
-import org.koin.core.qualifier.named
-import server.Client
 import server.ConnectionState
-import server.DiscordClient
+import ui.DiscordViewModel
 import ui.Fragment
 import ui.common.ConnectionStatus
 import ui.common.PasswordVisibilityIndicator
 import utils.AppColor
 
 @OptIn(ExperimentalComposeUiApi::class)
-class DiscordFragment(
-    private val commonMessagesFlow: MutableSharedFlow<Pair<String, String>>,
-) : Fragment() {
+class DiscordFragment : Fragment() {
 
-    private val discordRepository by inject<DiscordRepository>()
-    private var discordBotInfo by mutableStateOf(DiscordBotInfo())
+    private val viewModel by inject<DiscordViewModel>()
+
+    private var botInfo by mutableStateOf(viewModel.botInfoFlow.value)
+
     private var discordConnectionState by mutableStateOf<ConnectionState>(ConnectionState.Disconnected)
-    private var discordJob: Job? = null
-
-    var guilds by mutableStateOf(emptyList<Guild>())
-    var channels by mutableStateOf(emptyList<DiscordChannel>())
-
-    private fun connectDiscord() {
-        val client = get<Client>(named(Client.Type.Discord)) { parametersOf(discordBotInfo) }
-        discordJob = lifecycleScope.launch {
-            client.start()
-                .onEach {
-                    commonMessagesFlow.tryEmit(Client.Type.Discord to it)
-                }
-                .launchIn(this)
-            client.state
-                .onEach { discordConnectionState = it }
-                .filterIsInstance<ConnectionState.Connected>()
-                .onEach { guilds = (client as DiscordClient).getGuilds() }
-                .onCompletion { discordConnectionState = ConnectionState.Disconnected }
-                .launchIn(this)
-            commonMessagesFlow
-                .transform { (client, message) ->
-                    if (client != Client.Type.Discord) {
-                        emit(message)
-                    }
-                }
-                .onEach { client.send(it) }
-                .launchIn(this)
-            client.state
-                .filterIsInstance<ConnectionState.Connected>()
-                .combine(discordRepository.getDiscordBotInfoFlow()) { _, botInfo -> botInfo }
-                .mapNotNull { it.guild }
-                .distinctUntilChanged()
-                .onEach { channels = (client as DiscordClient).getChannels(Snowflake(it.id)) }
-                .launchIn(this)
-        }
-    }
-
-    private fun onDiscordButtonClicked() {
-        when {
-            discordJob?.isActive == true -> {
-                discordJob?.cancel()
-                discordJob = null
-            }
-            discordBotInfo.token.isNotEmpty() -> {
-                connectDiscord()
-            }
-            else -> {
-                println("NOT VALID")
-            }
-        }
-    }
 
     @Composable
     private fun DiscordPanel() {
@@ -124,7 +63,14 @@ class DiscordFragment(
                     .align(Alignment.CenterVertically),
             )
             Button(
-                onClick = ::onDiscordButtonClicked,
+                onClick = {
+                    println(discordConnectionState.toString())
+                    if (discordConnectionState is ConnectionState.Disconnected) {
+                        viewModel.connectDiscord()
+                    } else {
+                        viewModel.disconnect()
+                    }
+                },
             ) {
                 Text(
                     text = if (discordConnectionState is ConnectionState.Disconnected) "Start" else "Stop",
@@ -137,10 +83,10 @@ class DiscordFragment(
         ) {
             var showToken by remember { mutableStateOf(false) }
             TextField(
-                value = discordBotInfo.token,
+                value = botInfo.token,
                 onValueChange = {
-                    discordBotInfo = discordBotInfo.copy(token = it)
-                    lifecycleScope.launch { discordRepository.updateToken(it) }
+                    botInfo = botInfo.copy(token = it)
+                    viewModel.updateToken(it)
                 },
                 label = { Text("Token") },
                 visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -227,7 +173,7 @@ class DiscordFragment(
                     .clickable(editable) { guildsOpen = !guildsOpen }
                     .pointerHoverIcon(if (editable) PointerIconDefaults.Hand else PointerIconDefaults.Default)
             ) {
-                val guild = discordBotInfo.guild
+                val guild = botInfo.guild
                 if (guild == null) {
                     ChooserPlaceholder()
                 } else {
@@ -239,10 +185,11 @@ class DiscordFragment(
                     modifier = Modifier
                         .background(AppColor.DarkBackground)
                 ) {
+                    val guilds by viewModel.guildsFlow.collectAsState(lifecycleScope.coroutineContext)
                     guilds.forEach { guild ->
                         DropdownMenuItem(
                             onClick = {
-                                lifecycleScope.launch { discordRepository.updateGuild(guild.id.value.toString(), guild.name) }
+                                viewModel.updateGuild(guild)
                                 guildsOpen = false
                             }
                         ) {
@@ -259,7 +206,7 @@ class DiscordFragment(
         ChooserRow {
             var channelsOpen by remember { mutableStateOf(false) }
             ChooserTitle(title = "Channel")
-            val editable = discordConnectionState is ConnectionState.Connected && discordBotInfo.guild != null
+            val editable = discordConnectionState is ConnectionState.Connected && botInfo.guild != null
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
@@ -267,7 +214,7 @@ class DiscordFragment(
                     .clickable(editable) { channelsOpen = !channelsOpen }
                     .pointerHoverIcon(if (editable) PointerIconDefaults.Hand else PointerIconDefaults.Default)
             ) {
-                val channel = discordBotInfo.channel
+                val channel = botInfo.channel
                 if (channel == null) {
                     ChooserPlaceholder()
                 } else {
@@ -279,10 +226,11 @@ class DiscordFragment(
                     modifier = Modifier
                         .background(AppColor.DarkBackground)
                 ) {
+                    val channels by viewModel.channelsFlow.collectAsState(lifecycleScope.coroutineContext)
                     channels.forEach { channel ->
                         DropdownMenuItem(
                             onClick = {
-                                lifecycleScope.launch { discordRepository.updateChannel(channel.id.value.toString(), channel.name.value!!) }
+                                viewModel.updateChannel(channel)
                                 channelsOpen = false
                             }
                         ) {
@@ -297,14 +245,13 @@ class DiscordFragment(
     @Composable
     override fun Content() {
         LaunchedEffect(this) {
-            discordRepository.getDiscordBotInfoFlow()
-                .withIndex()
-                .onEach { (index, info) ->
+            viewModel.discordConnectionState
+                .onEach { discordConnectionState = it }
+                .launchIn(lifecycleScope)
+            viewModel.botInfoFlow
+                .onEach { info ->
                     println(info.toString())
-                    discordBotInfo = info
-                    if (index == 0 && info.token.isNotEmpty()) {
-                        connectDiscord()
-                    }
+                    botInfo = info
                 }
                 .launchIn(lifecycleScope)
         }

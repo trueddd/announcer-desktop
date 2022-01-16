@@ -3,19 +3,16 @@ package ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.flow.*
 import navigation.DiscordFragment
 import navigation.TelegramFragment
 import utils.AppColor
 
 class MainFragment : Fragment() {
-
-    private val commonMessagesFlow = MutableSharedFlow<Pair<String, String>>(extraBufferCapacity = 1)
 
     @Composable
     override fun Content() {
@@ -33,7 +30,7 @@ class MainFragment : Fragment() {
                         .weight(1f)
                         .fillMaxHeight(),
                 ) {
-                    DiscordFragment(commonMessagesFlow).Content()
+                    DiscordFragment().Content()
                 }
                 Column(
                     modifier = Modifier
@@ -41,7 +38,7 @@ class MainFragment : Fragment() {
                         .fillMaxHeight()
                         .background(AppColor.TelegramBackground),
                 ) {
-                    TelegramFragment(commonMessagesFlow).Content()
+                    TelegramFragment().Content()
                 }
             }
             Box(

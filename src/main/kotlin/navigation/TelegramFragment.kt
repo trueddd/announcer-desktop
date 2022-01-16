@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import data.telegram.TelegramBotInfo
 import db.TelegramRepository
+import di.MessagesFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,9 +34,9 @@ import ui.common.ConnectionStatus
 import ui.common.PasswordVisibilityIndicator
 import utils.AppColor
 
-class TelegramFragment(
-    private val commonMessagesFlow: MutableSharedFlow<Pair<String, String>>,
-) : Fragment() {
+class TelegramFragment : Fragment() {
+
+    private val commonMessagesFlow by inject<MessagesFlow>()
 
     private val telegramRepository by inject<TelegramRepository>()
     private var telegramBotInfo by mutableStateOf(TelegramBotInfo())
