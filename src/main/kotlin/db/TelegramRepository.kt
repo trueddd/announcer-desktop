@@ -2,6 +2,7 @@ package db
 
 import data.telegram.TelegramBotInfo
 import data.telegram.TelegramBotInfo.Companion.asTelegramBotInfo
+import dev.inmo.tgbotapi.types.chat.abstracts.ChannelChat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onStart
 import org.jetbrains.exposed.sql.Database
@@ -37,10 +38,11 @@ class TelegramRepository(database: Database) : BaseRepository(database) {
         }
     }
 
-    suspend fun updateChannel(channelId: String) {
+    suspend fun updateChat(channelChat: ChannelChat) {
         dbCall(TelegramBotTable) {
             TelegramBotTable.update {
-                it[TelegramBotTable.channelId] = channelId
+                it[channelId] = channelChat.id.chatId.toString()
+                it[channelTitle] = channelChat.title
             }
         }
     }

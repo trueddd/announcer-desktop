@@ -1,25 +1,29 @@
 package server
 
-import data.telegram.TelegramBotInfo
 import db.TelegramRepository
 import dev.inmo.tgbotapi.extensions.api.bot.getMe
 import dev.inmo.tgbotapi.extensions.api.send.sendTextMessage
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContext
 import dev.inmo.tgbotapi.extensions.behaviour_builder.telegramBotWithBehaviourAndLongPolling
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onContentMessage
+import dev.inmo.tgbotapi.extensions.utils.asChannelChat
 import dev.inmo.tgbotapi.extensions.utils.asFromUser
 import dev.inmo.tgbotapi.extensions.utils.asTextContent
+import dev.inmo.tgbotapi.extensions.utils.shortcuts.events
+import dev.inmo.tgbotapi.extensions.utils.shortcuts.filterChannelEvents
 import dev.inmo.tgbotapi.types.ChatId
+import dev.inmo.tgbotapi.types.chat.abstracts.ChannelChat
+import dev.inmo.tgbotapi.types.message.ChatEvents.NewChatTitle
 import dev.inmo.tgbotapi.utils.PreviewFeature
+import dev.inmo.tgbotapi.utils.RiskFeature
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.coroutines.CoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TelegramClientImpl(
-    private val telegramBotInfo: TelegramBotInfo,
     private val telegramRepository: TelegramRepository,
-) : Client, CoroutineScope {
+) : TelegramClient, CoroutineScope {
 
     override val coroutineContext: CoroutineContext by lazy {
         SupervisorJob() + Dispatchers.IO
@@ -31,9 +35,9 @@ class TelegramClientImpl(
 
     private var botBehaviour: BehaviourContext? = null
 
-    private var chatId = telegramBotInfo.channelId.toChatId()
+    private var chatId: Long? = null
 
-    private fun String.toChatId(): Long? {
+    private fun String.normalizeChatId(): Long? {
         return if (startsWith("-100"))
             toLongOrNull()
         else
@@ -47,16 +51,29 @@ class TelegramClientImpl(
         }
     }
 
+    @OptIn(RiskFeature::class, PreviewFeature::class)
+    override fun waitForChatWithStringInTitle(substring: String): Flow<ChannelChat> {
+        val client = botBehaviour ?: return flow { throw IllegalStateException("No bot object found.") }
+        return client.events()
+            .filterChannelEvents<NewChatTitle>()
+            .onEach { it.chat.title }
+            .filter { substring in it.chatEvent.title }
+            .take(1)
+            .mapNotNull { it.chat.asChannelChat() }
+            .onEach { println("${it.id} ${it.title}") }
+    }
+
     @OptIn(PreviewFeature::class)
     override fun start(): Flow<String> {
         return channelFlow {
             _state.value = ConnectionState.Connecting
-            telegramBotWithBehaviourAndLongPolling(telegramBotInfo.token, this@TelegramClientImpl) {
+            val token = telegramRepository.getTelegramBotInfoFlow().first().token
+            telegramBotWithBehaviourAndLongPolling(token, this@TelegramClientImpl) {
                 val self = getMe()
                 botBehaviour = this
                 _state.value = ConnectionState.Connected
                 telegramRepository.getTelegramBotInfoFlow()
-                    .mapNotNull { it.channelId.toChatId() }
+                    .mapNotNull { it.channelId.normalizeChatId() }
                     .onEach { chatId = it }
                     .launchIn(this@channelFlow)
                 onContentMessage { message ->

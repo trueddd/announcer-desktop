@@ -1,7 +1,5 @@
 package di
 
-import data.discord.DiscordBotInfo
-import data.telegram.TelegramBotInfo
 import db.DiscordRepository
 import db.TelegramRepository
 import io.ktor.client.*
@@ -13,11 +11,9 @@ import io.ktor.client.features.websocket.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import server.Client
-import server.DiscordClient
-import server.DiscordClientImpl
-import server.TelegramClientImpl
+import server.*
 import ui.DiscordViewModel
+import ui.TelegramViewModel
 
 val repositoryModule = module {
 
@@ -52,14 +48,28 @@ val appModule = module {
         DiscordClientImpl(discordRepository = get())
     }
 
-    factory<Client>(named(Client.Type.Telegram)) { (telegramInfo: TelegramBotInfo) ->
-        TelegramClientImpl(telegramInfo, telegramRepository = get())
+    single<TelegramClient>(named(Client.Type.Telegram)) { //(telegramInfo: TelegramBotInfo) ->
+        TelegramClientImpl(telegramRepository = get())
     }
 }
 
 val viewModelModule = module {
 
-    factory { DiscordViewModel(messagesFlow = get(), discordRepository = get(), discordClient = get(named(Client.Type.Discord))) }
+    factory {
+        DiscordViewModel(
+            messagesFlow = get(),
+            discordRepository = get(),
+            discordClient = get(named(Client.Type.Discord)),
+        )
+    }
+
+    factory {
+        TelegramViewModel(
+            messagesFlow = get(),
+            telegramRepository = get(),
+            telegramClient = get(named(Client.Type.Telegram)),
+        )
+    }
 }
 
 val modules = arrayOf(repositoryModule, appModule, viewModelModule)
