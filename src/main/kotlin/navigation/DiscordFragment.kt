@@ -25,6 +25,7 @@ import org.koin.core.component.inject
 import server.ConnectionState
 import ui.DiscordViewModel
 import ui.Fragment
+import ui.common.ChooserTitle
 import ui.common.ConnectionStatus
 import ui.common.PasswordVisibilityIndicator
 import utils.AppColor
@@ -119,19 +120,6 @@ class DiscordFragment : Fragment() {
     }
 
     @Composable
-    private fun RowScope.ChooserTitle(
-        title: String,
-    ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .align(Alignment.CenterVertically)
-        )
-    }
-
-    @Composable
     private fun BoxScope.ChooserPlaceholder() {
         Text(
             text = "Click here to choose...",
@@ -165,6 +153,7 @@ class DiscordFragment : Fragment() {
         ChooserRow {
             var guildsOpen by remember { mutableStateOf(false) }
             ChooserTitle(title = "Guild")
+            Spacer(modifier = Modifier.width(8.dp))
             val editable = discordConnectionState is ConnectionState.Connected
             Box(
                 modifier = Modifier
@@ -206,6 +195,7 @@ class DiscordFragment : Fragment() {
         ChooserRow {
             var channelsOpen by remember { mutableStateOf(false) }
             ChooserTitle(title = "Channel")
+            Spacer(modifier = Modifier.width(8.dp))
             val editable = discordConnectionState is ConnectionState.Connected && botInfo.guild != null
             Box(
                 modifier = Modifier

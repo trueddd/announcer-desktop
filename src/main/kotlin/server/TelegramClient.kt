@@ -5,5 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface TelegramClient : Client {
 
-    fun waitForChatWithStringInTitle(substring: String): Flow<ChannelChat>
+    fun waitForChatWithPinnedMessage(): Flow<ChannelChat>
 }

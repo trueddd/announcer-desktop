@@ -13,7 +13,7 @@ import dev.inmo.tgbotapi.extensions.utils.shortcuts.events
 import dev.inmo.tgbotapi.extensions.utils.shortcuts.filterChannelEvents
 import dev.inmo.tgbotapi.types.ChatId
 import dev.inmo.tgbotapi.types.chat.abstracts.ChannelChat
-import dev.inmo.tgbotapi.types.message.ChatEvents.NewChatTitle
+import dev.inmo.tgbotapi.types.message.ChatEvents.PinnedMessage
 import dev.inmo.tgbotapi.utils.PreviewFeature
 import dev.inmo.tgbotapi.utils.RiskFeature
 import kotlinx.coroutines.*
@@ -52,12 +52,10 @@ class TelegramClientImpl(
     }
 
     @OptIn(RiskFeature::class, PreviewFeature::class)
-    override fun waitForChatWithStringInTitle(substring: String): Flow<ChannelChat> {
+    override fun waitForChatWithPinnedMessage(): Flow<ChannelChat> {
         val client = botBehaviour ?: return flow { throw IllegalStateException("No bot object found.") }
         return client.events()
-            .filterChannelEvents<NewChatTitle>()
-            .onEach { it.chat.title }
-            .filter { substring in it.chatEvent.title }
+            .filterChannelEvents<PinnedMessage>()
             .take(1)
             .mapNotNull { it.chat.asChannelChat() }
             .onEach { println("${it.id} ${it.title}") }

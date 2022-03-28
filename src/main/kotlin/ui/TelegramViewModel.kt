@@ -28,7 +28,7 @@ class TelegramViewModel(
     fun updateToken(newToken: String) = launch { telegramRepository.updateToken(newToken) }
 
     fun waitForChannel(): Flow<ChannelChat> {
-        return telegramClient.waitForChatWithStringInTitle("!!!")
+        return telegramClient.waitForChatWithPinnedMessage()
             .onStart { println("Updating chat") }
             .onEach { telegramRepository.updateChat(it) }
             .onCompletion {
