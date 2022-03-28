@@ -1,5 +1,11 @@
 package di
 
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.res.ResourceLoader
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.cloud.StorageClient
 import db.DiscordRepository
 import db.TelegramRepository
 import io.ktor.client.*
@@ -22,6 +28,7 @@ val repositoryModule = module {
     single { TelegramRepository(database = get()) }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 val appModule = module {
 
     factory {
@@ -51,6 +58,19 @@ val appModule = module {
     single<TelegramClient>(named(Client.Type.Telegram)) { //(telegramInfo: TelegramBotInfo) ->
         TelegramClientImpl(telegramRepository = get())
     }
+
+    single {
+        val keyFileName = get<AppParameters>().firebaseKeyFile
+        val bucketName = get<AppParameters>().firebaseBucket
+        val options = FirebaseOptions
+            .builder()
+            .setCredentials(GoogleCredentials.fromStream(ResourceLoader.Default.load(keyFileName)))
+            .setStorageBucket(bucketName)
+            .build()
+        FirebaseApp.initializeApp(options)
+    }
+
+    single { StorageClient.getInstance(get()).bucket() }
 }
 
 val viewModelModule = module {
@@ -77,3 +97,11 @@ val modules = arrayOf(repositoryModule, appModule, viewModelModule)
 typealias MessageSource = String
 typealias Content = String
 typealias MessagesFlow = MutableSharedFlow<Pair<MessageSource, Content>>
+
+typealias AppParameters = Map<String, String>
+val AppParameters.version: String
+    get() = this["version"]!!
+private val AppParameters.firebaseKeyFile: String
+    get() = this["firebaseKeyFile"]!!
+private val AppParameters.firebaseBucket: String
+    get() = this["firebaseBucket"]!!

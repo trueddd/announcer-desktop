@@ -5,7 +5,9 @@ import ui.Fragment
 import ui.MainFragment
 import ui.SplashFragment
 
-class MainNavigator : BaseNavigator() {
+class MainNavigator(
+    val appParameters: Map<String, String>,
+) : BaseNavigator() {
 
     override var fragment by mutableStateOf<Fragment>(SplashFragment(this))
 

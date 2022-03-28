@@ -4,18 +4,36 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.cloud.storage.Bucket
+import com.google.cloud.storage.Storage
+import di.AppParameters
+import di.version
 import navigation.DiscordFragment
 import navigation.TelegramFragment
+import org.koin.core.component.inject
 import utils.AppColor
 
 class MainFragment : Fragment() {
 
+    private val appParameters by inject<AppParameters>()
+
+    private val firebaseBucket by inject<Bucket>()
+
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Content() {
+        LaunchedEffect(this) {
+            val files = firebaseBucket.list(Storage.BlobListOption.currentDirectory()).values
+            println("Found files on bucket: ${files.joinToString { it.name }}")
+            // TODO: implement files loader via storage reader
+            //  firebaseBucket.storage.reader(firebaseBucket.name, file.name)
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -41,7 +59,7 @@ class MainFragment : Fragment() {
                     TelegramFragment().Content()
                 }
             }
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
@@ -49,8 +67,15 @@ class MainFragment : Fragment() {
                     text = "Only text messages are currently supported.",
                     fontSize = 14.sp,
                     modifier = Modifier
-                        .padding(8.dp)
-                        .align(Alignment.Center),
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp)
+                        .align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    text = "v${appParameters.version}",
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                        .align(Alignment.CenterHorizontally)
                 )
             }
         }
