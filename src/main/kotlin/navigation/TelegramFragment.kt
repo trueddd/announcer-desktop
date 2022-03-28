@@ -157,7 +157,7 @@ class TelegramFragment : Fragment() {
                     contentDescription = "Update channel",
                     tint = AppColor.Primary,
                     modifier = Modifier
-                        .pointerHoverIcon(if (updating) PointerIconDefaults.Default else PointerIconDefaults.Hand)
+                        .pointerHoverIcon(if (!updating && telegramConnectionState is ConnectionState.Connected) PointerIconDefaults.Default else PointerIconDefaults.Hand)
                         .clickable(!updating) {
                             if (telegramConnectionState !is ConnectionState.Connected) {
                                 println("Telegram not connected")
