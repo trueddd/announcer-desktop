@@ -20,6 +20,9 @@ import org.koin.dsl.module
 import server.*
 import ui.DiscordViewModel
 import ui.TelegramViewModel
+import update.UpdatesLoader
+import update.UpdatesLoaderImpl
+import java.io.File
 
 val repositoryModule = module {
 
@@ -31,7 +34,7 @@ val repositoryModule = module {
 @OptIn(ExperimentalComposeUiApi::class)
 val appModule = module {
 
-    factory {
+    single {
         HttpClient(Java) {
             install(Logging) {
                 logger = Logger.SIMPLE
@@ -55,7 +58,7 @@ val appModule = module {
         DiscordClientImpl(discordRepository = get())
     }
 
-    single<TelegramClient>(named(Client.Type.Telegram)) { //(telegramInfo: TelegramBotInfo) ->
+    single<TelegramClient>(named(Client.Type.Telegram)) {
         TelegramClientImpl(telegramRepository = get())
     }
 
@@ -71,6 +74,8 @@ val appModule = module {
     }
 
     single { StorageClient.getInstance(get()).bucket() }
+
+    single<UpdatesLoader> { UpdatesLoaderImpl(appParameters = get(), firebaseBucket = get()) }
 }
 
 val viewModelModule = module {
@@ -105,3 +110,6 @@ private val AppParameters.firebaseKeyFile: String
     get() = this["firebaseKeyFile"]!!
 private val AppParameters.firebaseBucket: String
     get() = this["firebaseBucket"]!!
+
+val applicationDataDirectory: File
+    get() = File("${System.getenv("APPDATA")}/announcer")
