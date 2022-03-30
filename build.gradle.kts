@@ -54,6 +54,11 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+tasks.register("uploadPackageToFirebase") {
+    dependsOn("packageMsi")
+    val targetFile = File("${buildDir.absolutePath}/compose/binaries/main/msi/${Config.Windows.PackageName}-${Config.Version}.msi")
+}
+
 compose.desktop {
     application {
         mainClass = "MainKt"
