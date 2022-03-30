@@ -1,12 +1,14 @@
 package update
 
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 interface UpdatesLoader {
 
+    val updateAvailabilityFlow: StateFlow<UpdateAvailability>
+
     fun deleteLocalUpdateFiles()
 
-    fun checkForUpdate(): Flow<UpdateAvailability>
+    fun checkForUpdate()
 
-    fun loadUpdate(): Flow<UpdateStatus>
+    fun loadUpdate(remoteUpdateData: UpdateData.Remote)
 }

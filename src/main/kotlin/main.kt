@@ -1,6 +1,8 @@
 import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import di.AppStopper
+import di.appModule
 import navigation.MainNavigator
 
 fun main(vararg args: String) = application {
@@ -13,6 +15,7 @@ fun main(vararg args: String) = application {
         title = "Announcer",
     ) {
         println("App launched with parameters: $appParams")
+        appModule.single<AppStopper> { ::exitApplication }
         val navigator = MainNavigator(appParams)
         MaterialTheme {
             navigator.fragment.Content()

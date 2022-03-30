@@ -102,6 +102,7 @@ val modules = arrayOf(repositoryModule, appModule, viewModelModule)
 typealias MessageSource = String
 typealias Content = String
 typealias MessagesFlow = MutableSharedFlow<Pair<MessageSource, Content>>
+typealias AppStopper = () -> Unit
 
 typealias AppParameters = Map<String, String>
 val AppParameters.version: String

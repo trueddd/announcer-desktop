@@ -1,34 +1,39 @@
 package ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIconDefaults
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import di.AppParameters
+import di.AppStopper
 import di.version
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import navigation.DiscordFragment
 import navigation.TelegramFragment
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import update.UpdateAvailability
 import update.UpdatesLoader
 import utils.AppColor
+import java.awt.Desktop
 
 class MainFragment : Fragment() {
 
     private val appParameters by inject<AppParameters>()
 
     private val updatesLoader by inject<UpdatesLoader>()
-
-    private var updateFile by mutableStateOf<UpdateAvailability.HasUpdate?>(null)
 
     private fun cleanLocalFileForUpdate() {
         updatesLoader.deleteLocalUpdateFiles()
@@ -37,6 +42,7 @@ class MainFragment : Fragment() {
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Content() {
+        val updateStatus by updatesLoader.updateAvailabilityFlow.collectAsState(lifecycleScope)
         LaunchedEffect(this) {
             cleanLocalFileForUpdate()
             checkForUpdates()
@@ -46,38 +52,20 @@ class MainFragment : Fragment() {
                 .fillMaxSize()
                 .background(AppColor.PrimaryBackground)
         ) {
-            updateFile?.let {
-                UpdateHeader(it)
+            AnimatedVisibility(updateStatus is UpdateAvailability.HasUpdate) {
+                UpdateHeader(updateStatus as UpdateAvailability.HasUpdate)
             }
             MainContent()
             Footer()
         }
     }
 
-    private fun CoroutineScope.checkForUpdates() {
+    private fun checkForUpdates() {
         updatesLoader.checkForUpdate()
-            .onStart { updateFile = null }
-            .onEach { status ->
-                when (status) {
-                    is UpdateAvailability.Checking -> {
-                        println("Checking update...")
-                    }
-                    is UpdateAvailability.Error -> {
-                        println("Update check error: ${status.cause.cause}")
-                    }
-                    is UpdateAvailability.HasUpdate -> {
-                        updateFile = status
-                    }
-                    is UpdateAvailability.NoUpdate -> {
-                        updateFile = null
-                    }
-                }
-            }
-            .launchIn(this)
     }
 
     @Composable
-    private fun ColumnScope.UpdateHeader(status: UpdateAvailability.HasUpdate) {
+    private fun UpdateHeader(status: UpdateAvailability.HasUpdate) {
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -85,18 +73,86 @@ class MainFragment : Fragment() {
                 .fillMaxWidth()
         ) {
             Text(
-                text = "New version is available - ${status.version}",
+                text = "New version is available - ${status.updateData.version}",
                 fontSize = 14.sp,
                 modifier = Modifier
                     .padding(8.dp),
             )
+            when (status) {
+                is UpdateAvailability.HasUpdate.ReadyToUpdate -> ReadyToUpdate(status)
+                is UpdateAvailability.HasUpdate.ReadyToDownload -> ReadyToDownload(status)
+                is UpdateAvailability.HasUpdate.Downloading -> UpdateStatus(status)
+                is UpdateAvailability.HasUpdate.DownloadError -> UpdateError(status)
+            }
+        }
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Composable
+    private fun UpdateButton(
+        text: String,
+        action: () -> Unit,
+    ) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val isHovered by interactionSource.collectIsHoveredAsState()
+        Box(
+            modifier = Modifier
+                .clickable(
+                    onClick = action,
+                    indication = rememberRipple(),
+                    interactionSource = interactionSource,
+                )
+                .pointerHoverIcon(PointerIconDefaults.Hand)
+                .background(
+                    if (isHovered) AppColor.DarkAccent.copy(alpha = 0.5f) else AppColor.DarkAccent,
+                    RoundedCornerShape(4.dp)
+                )
+        ) {
             Text(
-                text = if (status is UpdateAvailability.HasUpdate.Local) "Local" else "Remote",
-                fontSize = 14.sp,
+                text = text,
+                fontSize = 12.sp,
+                color = AppColor.White,
                 modifier = Modifier
-                    .padding(8.dp),
+                    .padding(4.dp)
             )
         }
+    }
+
+    @Composable
+    private fun ReadyToDownload(status: UpdateAvailability.HasUpdate.ReadyToDownload) {
+        UpdateButton("Download (${status.updateData.file.size})") {
+            updatesLoader.loadUpdate(status.updateData)
+        }
+    }
+
+    @Composable
+    private fun ReadyToUpdate(status: UpdateAvailability.HasUpdate.ReadyToUpdate) {
+        UpdateButton("Update") {
+            Desktop.getDesktop().open(status.updateData.file)
+            get<AppStopper>().invoke()
+        }
+    }
+
+    @Composable
+    private fun UpdateStatus(status: UpdateAvailability.HasUpdate.Downloading) {
+        Text(
+            text = "Downloading - ${String.format("%.1f", status.downloaded * 100f / status.updateData.file.size)}%",
+            fontSize = 14.sp,
+            color = AppColor.White,
+            modifier = Modifier
+                .padding(4.dp)
+        )
+    }
+
+    @Composable
+    private fun UpdateError(status: UpdateAvailability.HasUpdate.DownloadError) {
+        Text(
+            text = "Download error - ${status.cause.message}",
+            fontSize = 14.sp,
+            color = AppColor.White,
+            modifier = Modifier
+                .padding(4.dp)
+        )
     }
 
     @Composable
@@ -124,7 +180,7 @@ class MainFragment : Fragment() {
     }
 
     @Composable
-    private fun ColumnScope.Footer() {
+    private fun Footer() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
