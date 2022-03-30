@@ -54,6 +54,13 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+tasks.register("uploadPackageToFirebase") {
+    dependsOn("packageMsi")
+    val targetFile = File("${buildDir.absolutePath}/compose/binaries/main/msi/${Config.Windows.PackageName}-${Config.Version}.msi")
+    println(targetFile.exists())
+    System.getenv("STORAGE_BUCKET").substringBefore(".").let { println(it) }
+}
+
 compose.desktop {
     application {
         mainClass = "MainKt"

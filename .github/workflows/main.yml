@@ -20,10 +20,5 @@ jobs:
           distribution: 'zulu'
       - name: Fetch sources
         uses: actions/checkout@v2
-      - name: Build Msi file
-        run: ./gradlew packageMsi
-      - name: Publish to Github Packages
-        uses: actions/upload-artifact@v2.3.1
-        with:
-          name: announcer-setup
-          path: 'build/compose/binaries/main/msi/*'
+      - name: Build msi-file and upload build
+        run: ./gradlew uploadPackageToFirebase
