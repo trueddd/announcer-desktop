@@ -25,6 +25,8 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: packageMsi
+      - name: Debug check for files
+        run: tree .
       - id: 'auth'
         name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v0
