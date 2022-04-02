@@ -54,18 +54,13 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
-tasks.register("uploadPackageToFirebase") {
-    dependsOn("packageMsi")
-    val targetFile = File("${buildDir.absolutePath}/compose/binaries/main/msi/${Config.Windows.PackageName}-${Config.Version}.msi")
-}
-
 compose.desktop {
     application {
         mainClass = "MainKt"
         args += listOf(
             "version=${Config.Version}",
-            "firebaseKeyFile=${FirebaseConfig.KeyFileName}",
-            "firebaseBucket=${FirebaseConfig.StorageBucket}",
+            "firebaseKeyFile=${System.getenv("FIREBASE_AUTH")}",
+            "firebaseBucket=${System.getenv("STORAGE_BUCKET")}",
         )
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi)

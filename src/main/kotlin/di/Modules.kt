@@ -1,7 +1,6 @@
 package di
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.res.ResourceLoader
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -23,6 +22,7 @@ import ui.TelegramViewModel
 import update.UpdatesLoader
 import update.UpdatesLoaderImpl
 import java.io.File
+import java.io.FileInputStream
 
 val repositoryModule = module {
 
@@ -65,9 +65,13 @@ val appModule = module {
     single {
         val keyFileName = get<AppParameters>().firebaseKeyFile
         val bucketName = get<AppParameters>().firebaseBucket
+        val keyStream = when {
+            System.getenv("LOCAL") != null -> FileInputStream(keyFileName)
+            else -> keyFileName.byteInputStream()
+        }
         val options = FirebaseOptions
             .builder()
-            .setCredentials(GoogleCredentials.fromStream(ResourceLoader.Default.load(keyFileName)))
+            .setCredentials(GoogleCredentials.fromStream(keyStream))
             .setStorageBucket(bucketName)
             .build()
         FirebaseApp.initializeApp(options)
