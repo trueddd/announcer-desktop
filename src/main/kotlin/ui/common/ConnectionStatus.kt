@@ -1,5 +1,6 @@
 package ui.common
 
+import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -11,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import server.ConnectionState
 
+@Preview
 @Composable
 fun ConnectionStatus(
     connectionState: ConnectionState,

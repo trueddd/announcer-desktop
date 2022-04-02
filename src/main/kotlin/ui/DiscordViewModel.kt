@@ -6,6 +6,7 @@ import dev.kord.common.entity.DiscordChannel
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Guild
 import di.MessagesFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,6 +14,7 @@ import server.Client
 import server.ConnectionState
 import server.DiscordClient
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DiscordViewModel(
     private val messagesFlow: MessagesFlow,
     private val discordRepository: DiscordRepository,
@@ -21,7 +23,8 @@ class DiscordViewModel(
 
     private var discordJob: Job? = null
 
-    val discordConnectionState = discordClient.state.stateIn(this, SharingStarted.Eagerly, ConnectionState.Disconnected)
+    val discordConnectionState = discordClient.state
+        .stateIn(this, SharingStarted.Eagerly, ConnectionState.Disconnected)
 
     val guildsFlow = discordConnectionState
         .filterIsInstance<ConnectionState.Connected>()

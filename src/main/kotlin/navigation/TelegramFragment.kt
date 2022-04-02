@@ -1,85 +1,55 @@
 package navigation
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIconDefaults
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.useResource
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import data.telegram.TelegramBotInfo
-import db.TelegramRepository
-import di.MessagesFlow
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import org.koin.core.component.get
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
-import org.koin.core.qualifier.named
-import server.Client
 import server.ConnectionState
 import ui.Fragment
+import ui.TelegramViewModel
+import ui.common.ChooserTitle
 import ui.common.ConnectionStatus
 import ui.common.PasswordVisibilityIndicator
 import utils.AppColor
+import utils.modifyIf
 
 class TelegramFragment : Fragment() {
 
-    private val commonMessagesFlow by inject<MessagesFlow>()
-
-    private val telegramRepository by inject<TelegramRepository>()
     private var telegramBotInfo by mutableStateOf(TelegramBotInfo())
+
+    private val viewModel by inject<TelegramViewModel>()
+
     private var telegramConnectionState by mutableStateOf<ConnectionState>(ConnectionState.Disconnected)
-    private var telegramJob: Job? = null
-
-    private fun connectTelegram() {
-        val client = get<Client>(named(Client.Type.Telegram)) { parametersOf(telegramBotInfo) }
-        telegramJob = lifecycleScope.launch {
-            client.start()
-                .onEach {
-                    commonMessagesFlow.tryEmit(Client.Type.Telegram to it)
-                }
-                .launchIn(this)
-            client.state
-                .onEach { telegramConnectionState = it }
-                .onCompletion { telegramConnectionState = ConnectionState.Disconnected }
-                .launchIn(this)
-            commonMessagesFlow
-                .transform { (client, message) ->
-                    if (client != Client.Type.Telegram) {
-                        emit(message)
-                    }
-                }
-                .onEach { client.send(it) }
-                .launchIn(this)
-        }
-    }
-
-    private fun onTelegramButtonClicked() {
-        when {
-            telegramJob?.isActive == true -> {
-                telegramJob?.cancel()
-                telegramJob = null
-            }
-            telegramBotInfo.isValid -> {
-                connectTelegram()
-            }
-            else -> {
-                println("tg: invalid")
-            }
-        }
-    }
 
     @Composable
     private fun TelegramLogo() {
@@ -110,7 +80,14 @@ class TelegramFragment : Fragment() {
                     .align(Alignment.CenterVertically),
             )
             Button(
-                onClick = ::onTelegramButtonClicked,
+                onClick = {
+                    println(telegramConnectionState.toString())
+                    if (telegramConnectionState is ConnectionState.Disconnected) {
+                        viewModel.connectTelegram()
+                    } else {
+                        viewModel.disconnect()
+                    }
+                },
             ) {
                 Text(
                     text = if (telegramConnectionState is ConnectionState.Disconnected) "Start" else "Stop",
@@ -119,16 +96,18 @@ class TelegramFragment : Fragment() {
         }
     }
 
-    private val chatIdRegex = Regex(".*web\\.telegram\\.org/\\?legacy=1#/im\\?p=c(\\d{10})_.*")
-    private fun String.retrieveTelegramChatId(): String {
-        return chatIdRegex.find(this)?.groupValues
-            ?.let { if (it.size == 2) it[1] else null } ?: this
+    @Composable
+    private fun TelegramPanel() {
+        Column {
+            TelegramLogo()
+            ConnectionPanel()
+            TokenChooser()
+            ChannelChooser()
+        }
     }
 
     @Composable
-    private fun TelegramPanel() {
-        TelegramLogo()
-        ConnectionPanel()
+    private fun TokenChooser() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,7 +117,7 @@ class TelegramFragment : Fragment() {
                 value = telegramBotInfo.token,
                 onValueChange = {
                     telegramBotInfo = telegramBotInfo.copy(token = it)
-                    lifecycleScope.launch { telegramRepository.updateToken(it) }
+                    viewModel.updateToken(it)
                 },
                 label = { Text("Token") },
                 visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -154,32 +133,92 @@ class TelegramFragment : Fragment() {
                     .clickable { showToken = !showToken }
             )
         }
-        TextField(
-            value = telegramBotInfo.channelId,
-            onValueChange = {
-                val newId = it.retrieveTelegramChatId()
-                telegramBotInfo = telegramBotInfo.copy(channelId = newId)
-                lifecycleScope.launch { telegramRepository.updateChannel(newId) }
-            },
-            singleLine = true,
-            label = { Text("Channel ID") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier
-                .fillMaxWidth(),
+    }
+
+    private var channelUpdateJob: Job? = null
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Composable
+    private fun ChannelChooser() {
+        var updating by remember { mutableStateOf(false) }
+        val animateTween by rememberInfiniteTransition().animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(500), RepeatMode.Restart)
         )
+        Column {
+            Row(
+                modifier = Modifier
+                    .padding(8.dp)
+            ) {
+                ChooserTitle(title = "Channel")
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Update channel",
+                    tint = AppColor.Primary,
+                    modifier = Modifier
+                        .pointerHoverIcon(if (!updating && telegramConnectionState is ConnectionState.Connected) PointerIconDefaults.Default else PointerIconDefaults.Hand)
+                        .clickable(!updating) {
+                            if (telegramConnectionState !is ConnectionState.Connected) {
+                                println("Telegram not connected")
+                                return@clickable
+                            }
+                            channelUpdateJob?.cancel()
+                            channelUpdateJob = viewModel.waitForChannel()
+                                .onStart { updating = true }
+                                .onCompletion { updating = false }
+                                .launchIn(lifecycleScope)
+                        }
+                        .align(Alignment.CenterVertically)
+                        .modifyIf(updating) { rotate(animateTween) }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                if (telegramBotInfo.channelId.isEmpty()) {
+                    Text(
+                        text = "Channel not chosen",
+                        color = Color.Red,
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .padding(start = 8.dp)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .background(AppColor.DarkBackground, RoundedCornerShape(4.dp))
+                    ) {
+                        Text(
+                            text = telegramBotInfo.channelTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColor.White,
+                            modifier = Modifier
+                                .padding(4.dp)
+                        )
+                    }
+                }
+            }
+            if (updating) {
+                Text(
+                    text = "Pin any message in the Telegram channel you want to bind.",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                )
+            }
+        }
     }
 
     @Composable
     override fun Content() {
         LaunchedEffect(this) {
-            telegramRepository.getTelegramBotInfoFlow()
-                .withIndex()
-                .onEach { (index, info) ->
+            viewModel.telegramConnectionState
+                .onEach { telegramConnectionState = it }
+                .launchIn(lifecycleScope)
+            viewModel.botInfoFlow
+                .onEach { info ->
                     println(info.toString())
                     telegramBotInfo = info
-                    if (index == 0 && info.isValid) {
-                        connectTelegram()
-                    }
                 }
                 .launchIn(lifecycleScope)
         }

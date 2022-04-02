@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version Versions.Kotlin
-    id("org.jetbrains.compose") version "1.0.1-rc2"
+    id("org.jetbrains.compose") version "1.1.0"
     id("org.jetbrains.kotlin.plugin.serialization") version Versions.Kotlin
 }
 
@@ -29,7 +29,7 @@ dependencies {
     implementation(ktor("ktor-client-java"))
     implementation(ktor("ktor-client-serialization"))
     implementation(ktor("ktor-client-logging"))
-    implementation("io.insert-koin:koin-core:3.1.4")
+    implementation("io.insert-koin:koin-core:3.1.5")
 
     implementation(exposed("exposed-core"))
     implementation(exposed("exposed-dao"))
@@ -38,7 +38,9 @@ dependencies {
     implementation("com.h2database:h2:1.4.199")
 
     implementation("dev.kord:kord-core:0.8.0-M8")
-    implementation("dev.inmo:tgbotapi:0.38.2")
+    implementation("dev.inmo:tgbotapi:0.38.7")
+
+    implementation("com.google.firebase:firebase-admin:8.1.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
 }
@@ -55,6 +57,11 @@ tasks.named<Test>("test") {
 compose.desktop {
     application {
         mainClass = "MainKt"
+        args += listOf(
+            "version=${Config.Version}",
+            "firebaseKeyFile=${System.getenv("FIREBASE_AUTH")}",
+            "firebaseBucket=${System.getenv("STORAGE_BUCKET")}",
+        )
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi)
             packageName = Config.Windows.PackageName
