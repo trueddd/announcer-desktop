@@ -24,7 +24,7 @@ jobs:
       - name: Build msi-file and upload build
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: packageMsi
+          arguments: createComposePackage
       - name: Debug check for files
         run: tree .
       - id: 'auth'

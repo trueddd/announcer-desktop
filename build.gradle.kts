@@ -54,6 +54,14 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+tasks.register("createComposePackage") {
+    dependsOn("packageMsi")
+    doLast {
+        val file = File("${buildDir.absolutePath}/compose/binaries/main/msi")
+        println("Built files: ${file.listFiles()?.joinToString()}")
+    }
+}
+
 compose.desktop {
     application {
         mainClass = "MainKt"
