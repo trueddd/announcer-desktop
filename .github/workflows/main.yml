@@ -25,6 +25,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: packageMsi
+      - uses: actions/upload-artifact@v3
+        name: Upload distibutable to Github Packages
+        with:
+          path: './build/compose/binaries/main/msi/announcer-*.msi'
       - id: 'auth'
         name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v0
