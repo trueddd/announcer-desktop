@@ -1,4 +1,4 @@
-##Desktop application for broadcasting messages to several media like Discord and Telegram.
+## Desktop application for broadcasting messages to several media like Discord and Telegram.
 
 [![CI](https://github.com/trueddd/announcer-desktop/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/trueddd/announcer-desktop/actions/workflows/main.yml)
 
@@ -6,7 +6,7 @@ Actual release could be found [here](https://github.com/trueddd/announcer-deskto
 
 **NOTE!** Application listens and sends new messages from provided sources **ONLY** when it is launched.
 
-Setup:
+#### Setup:
 - Telegram
   1. Create a telegram bot via [@BotFather](https://t.me/botfather).
   2. Get your bot token and enter it into the input field under Telegram logo on the Announcer app.

@@ -36,4 +36,5 @@ jobs:
         with:
           path: './build/compose/binaries/main/msi'
           destination: '${{ secrets.STORAGE_BUCKET }}'
+          parent: false
           glob: 'announcer-*.msi'
