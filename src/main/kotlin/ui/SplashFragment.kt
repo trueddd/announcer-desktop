@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.useResource
 import db.AppDatabase
+import di.appModule
 import di.repositoryModule
 import navigation.MainNavigator
 import org.koin.core.context.startKoin
@@ -26,6 +27,7 @@ class SplashFragment(
         LaunchedEffect(this) {
             AppDatabase.setup()
             repositoryModule.single(createdAtStart = true) { AppDatabase.instance!! }
+            appModule.single(createdAtStart = true) { navigator.appParameters }
             startKoin {
                 modules(*di.modules)
             }
