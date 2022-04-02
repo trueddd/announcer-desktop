@@ -4,4 +4,3 @@
 /buildSrc/.gradle/
 /buildSrc/build/
 /src/main/resources/*.json
-/buildSrc/src/main/kotlin/FirebaseConfig.kt
