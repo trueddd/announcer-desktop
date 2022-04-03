@@ -26,7 +26,7 @@ jobs:
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
         env:
-          FIREBASE_AUTH: '${{ secrets.AUTH_FILE_NAME }}'
+          FIREBASE_AUTH_BASE64: '${{ secrets.AUTH_FILE_NAME }}'
           STORAGE_BUCKET: '${{ secrets.STORAGE_BUCKET }}'
         with:
           arguments: packageMsi
