@@ -59,7 +59,7 @@ compose.desktop {
         mainClass = "MainKt"
         args += listOf(
             "version=${Config.Version}",
-            "firebaseKeyFile=${System.getenv("FIREBASE_AUTH")}",
+            "firebaseKeyFile=${System.getenv("FIREBASE_AUTH_BASE64")}",
             "firebaseBucket=${System.getenv("STORAGE_BUCKET")}",
         )
         nativeDistributions {

@@ -22,7 +22,7 @@ jobs:
           distribution: 'zulu'
           cache: gradle
       - name: Extract credentials file to resources
-        run: echo "${{ secrets.FIREBASE_AUTH }}" > ./src/main/resources/${{ secrets.AUTH_FILE_NAME }}
+        run: echo ${{ secrets.FIREBASE_AUTH_BASE64 }} > ./src/main/resources/${{ secrets.AUTH_FILE_NAME }}
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
         env:
