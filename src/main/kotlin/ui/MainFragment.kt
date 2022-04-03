@@ -120,7 +120,8 @@ class MainFragment : Fragment() {
 
     @Composable
     private fun ReadyToDownload(status: UpdateAvailability.HasUpdate.ReadyToDownload) {
-        UpdateButton("Download (${status.updateData.file.size})") {
+        val mbFileSize = status.updateData.file.size / 1024f / 1024
+        UpdateButton("Download (${String.format("%.1f MB", mbFileSize)})") {
             updatesLoader.loadUpdate(status.updateData)
         }
     }
