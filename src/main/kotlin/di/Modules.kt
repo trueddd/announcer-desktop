@@ -65,10 +65,7 @@ val appModule = module {
     single {
         val keyFileName = get<AppParameters>().firebaseKeyFile
         val bucketName = get<AppParameters>().firebaseBucket
-        val keyStream = when {
-            System.getenv("LOCAL") != null -> ResourceLoader.Default.load(keyFileName)
-            else -> keyFileName.byteInputStream()
-        }
+        val keyStream = ResourceLoader.Default.load(keyFileName)
         val options = FirebaseOptions
             .builder()
             .setCredentials(GoogleCredentials.fromStream(keyStream))

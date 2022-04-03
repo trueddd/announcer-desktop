@@ -21,10 +21,12 @@ jobs:
           java-version: '16'
           distribution: 'zulu'
           cache: gradle
+      - name: Extract credentials file to resources
+        run: echo ${{ secrets.FIREBASE_AUTH }} > ./src/main/resources/${{ secrets.AUTH_FILE_NAME }}
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
         env:
-          FIREBASE_AUTH: '${{ secrets.FIREBASE_AUTH }}'
+          FIREBASE_AUTH: '${{ secrets.AUTH_FILE_NAME }}'
           STORAGE_BUCKET: '${{ secrets.STORAGE_BUCKET }}'
         with:
           arguments: packageMsi
