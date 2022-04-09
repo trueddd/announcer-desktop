@@ -24,7 +24,7 @@ jobs:
       - name: Extract credentials file to resources
         run: echo ${{ secrets.FIREBASE_AUTH_BASE64 }} > "./src/main/resources/${{ secrets.AUTH_FILE_NAME }}"
       - name: Check repo
-        run: tree .
+        run: tree . /f /a
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
         env:
