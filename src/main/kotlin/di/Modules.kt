@@ -65,7 +65,7 @@ val appModule = module {
     }
 
     single {
-        val keyFileName = get<AppParameters>().firebaseKeyFile
+        val keyFileName = "firebase-system-key"//get<AppParameters>().firebaseKeyFile
         val bucketName = get<AppParameters>().firebaseBucket
         val keyStream = ResourceLoader.Default.load(keyFileName)
             .let { Base64.getDecoder().decode(it.readAllBytes()).toString(Charset.defaultCharset()) }
