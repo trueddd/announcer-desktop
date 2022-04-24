@@ -115,7 +115,7 @@ val AppParameters.version: String
 private val AppParameters.firebaseKeyFile: String
     get() = this["firebaseKeyFile"]!!
 private val AppParameters.firebaseBucket: String
-    get() = this["firebaseBucket"]!!
+    get() = "announcer-ede40.appspot.com"
 
 val applicationDataDirectory: File
     get() = File("${System.getenv("APPDATA")}/announcer")
