@@ -1,36 +1,39 @@
 import androidx.compose.material.MaterialTheme
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowExceptionHandler
-import androidx.compose.ui.window.application
+import androidx.compose.ui.window.*
 import com.soywiz.klock.DateFormat
 import com.soywiz.klock.DateTime
 import di.AppStopper
 import di.appModule
 import navigation.MainNavigator
+import java.awt.Window
+import java.awt.event.WindowEvent
 import java.io.File
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main(vararg args: String) = application {
     val appParams = getApplicationParameter(args)
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Announcer",
-    ) {
-        LaunchedEffect(Unit) {
-            window.exceptionHandler = WindowExceptionHandler {
-                val crashLogFile = File("${System.getenv("APPDATA")}/announcer/logs", "crash-${DateTime.now().format(DateFormat.FORMAT1)}.txt")
+    CompositionLocalProvider(
+        LocalWindowExceptionHandlerFactory provides object : WindowExceptionHandlerFactory {
+            override fun exceptionHandler(window: Window) = WindowExceptionHandler {
+                val crashLogFile = File("${System.getenv("APPDATA")}/announcer/crash-${DateTime.now().format(DateFormat("yyyy-MM-dd-HH-mm-ss"))}.txt")
                 crashLogFile.createNewFile()
                 crashLogFile.writeText(it.stackTraceToString())
+                window.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING))
             }
         }
-        println("App launched with parameters: $appParams")
-        appModule.single<AppStopper> { ::exitApplication }
-        val navigator = MainNavigator(appParams)
-        MaterialTheme {
-            navigator.fragment.Content()
+    ) {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Announcer",
+        ) {
+            println("App launched with parameters: $appParams")
+            appModule.single<AppStopper> { ::exitApplication }
+            val navigator = MainNavigator(appParams)
+            MaterialTheme {
+                navigator.fragment.Content()
+            }
         }
     }
 }
