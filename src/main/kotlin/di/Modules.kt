@@ -23,8 +23,6 @@ import ui.TelegramViewModel
 import update.UpdatesLoader
 import update.UpdatesLoaderImpl
 import java.io.File
-import java.nio.charset.Charset
-import java.util.*
 
 val repositoryModule = module {
 
@@ -65,11 +63,11 @@ val appModule = module {
     }
 
     single {
-        val keyFileName = "firebase-system-key"//get<AppParameters>().firebaseKeyFile
+        val keyFileName = "firebase-system-key.json"//get<AppParameters>().firebaseKeyFile
         val bucketName = get<AppParameters>().firebaseBucket
         val keyStream = ResourceLoader.Default.load(keyFileName)
-            .use { Base64.getDecoder().decode(it.readBytes()).toString(Charset.defaultCharset()) }
-            .byteInputStream()
+//            .use { Base64.getDecoder().decode(it.readBytes()).toString(Charset.defaultCharset()) }
+//            .byteInputStream()
         val options = FirebaseOptions
             .builder()
             .setCredentials(GoogleCredentials.fromStream(keyStream))

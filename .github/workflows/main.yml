@@ -22,13 +22,13 @@ jobs:
           distribution: 'zulu'
           cache: gradle
       - name: Extract credentials file to resources
-        run: echo ${{ secrets.FIREBASE_AUTH_BASE64 }} > "./src/main/resources/firebase-system-key"
+        run: echo ${{ secrets.FIREBASE_AUTH }} > "./src/main/resources/firebase-system-key.json"
       - name: Check repo
         run: tree . /f /a
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
         env:
-          FIREBASE_AUTH_BASE64: 'firebase-system-key'
+          FIREBASE_AUTH: 'firebase-system-key.json'
           STORAGE_BUCKET: '${{ secrets.STORAGE_BUCKET }}'
         with:
           arguments: packageMsi
