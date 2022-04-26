@@ -1,5 +1,5 @@
 object Config {
-    const val Version = "1.0.4"
+    const val Version = "1.0.5"
     const val PackageName = "com.trueddd.github"
     object Windows {
         const val PackageName = "announcer"

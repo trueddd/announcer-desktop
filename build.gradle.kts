@@ -69,6 +69,8 @@ compose.desktop {
             modules("java.sql")
             windows {
                 upgradeUuid = Config.Windows.UpgradeUuid
+                dirChooser = true
+                iconFile.set(project.file("src/main/resources/PeepoGlad.ico"))
             }
         }
     }

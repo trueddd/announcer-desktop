@@ -1,29 +1,17 @@
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.window.*
-import com.soywiz.klock.DateFormat
-import com.soywiz.klock.DateTime
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
 import di.AppStopper
 import di.appModule
 import navigation.MainNavigator
-import java.awt.Window
-import java.awt.event.WindowEvent
-import java.io.File
+import utils.ExceptionHandler
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main(vararg args: String) = application {
     val appParams = getApplicationParameter(args)
-    CompositionLocalProvider(
-        LocalWindowExceptionHandlerFactory provides object : WindowExceptionHandlerFactory {
-            override fun exceptionHandler(window: Window) = WindowExceptionHandler {
-                val crashLogFile = File("${System.getenv("APPDATA")}/announcer/crash-${DateTime.now().format(DateFormat("yyyy-MM-dd-HH-mm-ss"))}.txt")
-                crashLogFile.createNewFile()
-                crashLogFile.writeText(it.stackTraceToString())
-                window.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING))
-            }
-        }
-    ) {
+    CompositionLocalProvider(ExceptionHandler) {
         Window(
             onCloseRequest = ::exitApplication,
             title = "Announcer",

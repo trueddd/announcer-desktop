@@ -23,7 +23,6 @@ import ui.TelegramViewModel
 import update.UpdatesLoader
 import update.UpdatesLoaderImpl
 import utils.AesUtils
-import java.io.File
 
 val repositoryModule = module {
 
@@ -113,6 +112,3 @@ private val AppParameters.encryptionKey: String
     get() = this["encryptionKey"]!!
 private val AppParameters.firebaseBucket: String
     get() = this["firebaseBucket"]!!
-
-val applicationDataDirectory: File
-    get() = File("${System.getenv("APPDATA")}/announcer")

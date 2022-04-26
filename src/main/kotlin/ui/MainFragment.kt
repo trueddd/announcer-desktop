@@ -39,7 +39,6 @@ class MainFragment : Fragment() {
         updatesLoader.deleteLocalUpdateFiles()
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Content() {
         val updateStatus by updatesLoader.updateAvailabilityFlow.collectAsState(lifecycleScope)
