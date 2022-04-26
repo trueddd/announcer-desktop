@@ -48,10 +48,16 @@ jobs:
           destination: '${{ secrets.STORAGE_BUCKET }}'
           parent: false
           glob: 'announcer-*.msi'
+      - name: 'Get Previous tag'
+        id: 'previous-tag'
+        if: ${{ github.ref_name == 'master' }}
+        uses: WyriHaximus/github-action-get-previous-tag@v1
       - id: 'create-release'
         name: Create Github release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: ${{ github.ref_name == 'master' }}
         uses: softprops/action-gh-release@v1
         with:
           files: './build/compose/binaries/main/msi/announcer-*.msi'
           draft: true
+          tag_name: ${{ steps.previous-tag.outputs.tag }}
+          name: v${{ steps.previous-tag.outputs.tag }}
