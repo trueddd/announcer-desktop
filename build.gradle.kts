@@ -60,6 +60,7 @@ compose.desktop {
         args += listOf(
             "version=${Config.Version}",
             "firebaseBucket=${System.getenv("STORAGE_BUCKET")}",
+            "encryptionKey=${System.getenv("ENCRYPTION_SECRET_KEY")}",
         )
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi)

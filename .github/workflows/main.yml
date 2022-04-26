@@ -21,28 +21,27 @@ jobs:
           java-version: '16'
           distribution: 'zulu'
           cache: gradle
-      - name: Extract credentials file to resources
-        run: echo ${{ secrets.FIREBASE_AUTH }} > "./src/main/resources/firebase-system-key.json"
-      - name: Check repo
-        run: tree . /f /a
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
         env:
-          FIREBASE_AUTH: 'firebase-system-key.json'
+          ENCRYPTION_SECRET_KEY: '${{ secrets.ENCRYPTION_SECRET_KEY }}'
           STORAGE_BUCKET: '${{ secrets.STORAGE_BUCKET }}'
         with:
           arguments: packageMsi
       - uses: actions/upload-artifact@v3
         name: Upload distibutable to Github Packages
         with:
+          name: 'installer'
           path: './build/compose/binaries/main/msi/announcer-*.msi'
       - id: 'auth'
         name: Authenticate to Google Cloud
+        if: ${{ github.ref_name == 'master' }}
         uses: google-github-actions/auth@v0
         with:
           credentials_json: '${{ secrets.FIREBASE_AUTH }}'
       - id: 'upload-file'
         name: Upload distibutable file to Google Storage
+        if: ${{ github.ref_name == 'master' }}
         uses: google-github-actions/upload-cloud-storage@v0
         with:
           path: './build/compose/binaries/main/msi'

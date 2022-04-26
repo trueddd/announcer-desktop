@@ -22,6 +22,7 @@ import ui.DiscordViewModel
 import ui.TelegramViewModel
 import update.UpdatesLoader
 import update.UpdatesLoaderImpl
+import utils.AesUtils
 import java.io.File
 
 val repositoryModule = module {
@@ -63,14 +64,12 @@ val appModule = module {
     }
 
     single {
-        val keyFileName = "firebase-system-key.json"//get<AppParameters>().firebaseKeyFile
         val bucketName = get<AppParameters>().firebaseBucket
-        val keyStream = ResourceLoader.Default.load(keyFileName)
-//            .use { Base64.getDecoder().decode(it.readBytes()).toString(Charset.defaultCharset()) }
-//            .byteInputStream()
+        val keyStream = ResourceLoader.Default.load("firebase-service.key")
+        val serviceKey = AesUtils.decrypt(keyStream.readBytes().decodeToString(), get<AppParameters>().encryptionKey)
         val options = FirebaseOptions
             .builder()
-            .setCredentials(GoogleCredentials.fromStream(keyStream))
+            .setCredentials(GoogleCredentials.fromStream(serviceKey.byteInputStream()))
             .setStorageBucket(bucketName)
             .build()
         FirebaseApp.initializeApp(options)
@@ -110,10 +109,10 @@ typealias AppStopper = () -> Unit
 typealias AppParameters = Map<String, String>
 val AppParameters.version: String
     get() = this["version"]!!
-private val AppParameters.firebaseKeyFile: String
-    get() = this["firebaseKeyFile"]!!
+private val AppParameters.encryptionKey: String
+    get() = this["encryptionKey"]!!
 private val AppParameters.firebaseBucket: String
-    get() = "announcer-ede40.appspot.com"
+    get() = this["firebaseBucket"]!!
 
 val applicationDataDirectory: File
     get() = File("${System.getenv("APPDATA")}/announcer")
