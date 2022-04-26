@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.transaction
+import utils.AppDataFolder
 
 object AppDatabase {
 
@@ -19,7 +20,7 @@ object AppDatabase {
 
     suspend fun setup() {
         instance = withContext(Dispatchers.IO) {
-            Database.connect("jdbc:h2:${System.getenv("APPDATA")}/announcer/announcer_db", "org.h2.Driver").also {
+            Database.connect("jdbc:h2:${AppDataFolder.absolutePath}/announcer_db", "org.h2.Driver").also {
                 transaction {
                     SchemaUtils.createMissingTablesAndColumns(*tables)
                 }

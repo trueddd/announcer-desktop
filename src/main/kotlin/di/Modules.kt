@@ -1,6 +1,7 @@
 package di
 
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.res.ResourceLoader
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -21,8 +22,7 @@ import ui.DiscordViewModel
 import ui.TelegramViewModel
 import update.UpdatesLoader
 import update.UpdatesLoaderImpl
-import java.io.File
-import java.io.FileInputStream
+import utils.AesUtils
 
 val repositoryModule = module {
 
@@ -63,15 +63,12 @@ val appModule = module {
     }
 
     single {
-        val keyFileName = get<AppParameters>().firebaseKeyFile
         val bucketName = get<AppParameters>().firebaseBucket
-        val keyStream = when {
-            System.getenv("LOCAL") != null -> FileInputStream(keyFileName)
-            else -> keyFileName.byteInputStream()
-        }
+        val keyStream = ResourceLoader.Default.load("firebase-service.key")
+        val serviceKey = AesUtils.decrypt(keyStream.readBytes().decodeToString(), get<AppParameters>().encryptionKey)
         val options = FirebaseOptions
             .builder()
-            .setCredentials(GoogleCredentials.fromStream(keyStream))
+            .setCredentials(GoogleCredentials.fromStream(serviceKey.byteInputStream()))
             .setStorageBucket(bucketName)
             .build()
         FirebaseApp.initializeApp(options)
@@ -111,10 +108,7 @@ typealias AppStopper = () -> Unit
 typealias AppParameters = Map<String, String>
 val AppParameters.version: String
     get() = this["version"]!!
-private val AppParameters.firebaseKeyFile: String
-    get() = this["firebaseKeyFile"]!!
+private val AppParameters.encryptionKey: String
+    get() = this["encryptionKey"]!!
 private val AppParameters.firebaseBucket: String
     get() = this["firebaseBucket"]!!
-
-val applicationDataDirectory: File
-    get() = File("${System.getenv("APPDATA")}/announcer")

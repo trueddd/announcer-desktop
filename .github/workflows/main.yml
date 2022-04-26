@@ -9,7 +9,7 @@ on:
 jobs:
   windows-build:
     permissions:
-      contents: read
+      contents: write
       packages: write
     runs-on: windows-latest
     steps:
@@ -23,22 +23,35 @@ jobs:
           cache: gradle
       - name: Build msi distributable
         uses: gradle/gradle-build-action@v2
+        env:
+          ENCRYPTION_SECRET_KEY: '${{ secrets.ENCRYPTION_SECRET_KEY }}'
+          STORAGE_BUCKET: '${{ secrets.STORAGE_BUCKET }}'
         with:
           arguments: packageMsi
       - uses: actions/upload-artifact@v3
         name: Upload distibutable to Github Packages
         with:
+          name: 'installer'
           path: './build/compose/binaries/main/msi/announcer-*.msi'
       - id: 'auth'
         name: Authenticate to Google Cloud
+        if: ${{ github.ref_name == 'master' }}
         uses: google-github-actions/auth@v0
         with:
           credentials_json: '${{ secrets.FIREBASE_AUTH }}'
       - id: 'upload-file'
         name: Upload distibutable file to Google Storage
+        if: ${{ github.ref_name == 'master' }}
         uses: google-github-actions/upload-cloud-storage@v0
         with:
           path: './build/compose/binaries/main/msi'
           destination: '${{ secrets.STORAGE_BUCKET }}'
           parent: false
           glob: 'announcer-*.msi'
+      - id: 'create-release'
+        name: Create Github release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: './build/compose/binaries/main/msi/announcer-*.msi'
+          draft: true

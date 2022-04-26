@@ -59,8 +59,8 @@ compose.desktop {
         mainClass = "MainKt"
         args += listOf(
             "version=${Config.Version}",
-            "firebaseKeyFile=${System.getenv("FIREBASE_AUTH")}",
             "firebaseBucket=${System.getenv("STORAGE_BUCKET")}",
+            "encryptionKey=${System.getenv("ENCRYPTION_SECRET_KEY")}",
         )
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi)
@@ -69,6 +69,8 @@ compose.desktop {
             modules("java.sql")
             windows {
                 upgradeUuid = Config.Windows.UpgradeUuid
+                dirChooser = true
+                iconFile.set(project.file("src/main/resources/PeepoGlad.ico"))
             }
         }
     }

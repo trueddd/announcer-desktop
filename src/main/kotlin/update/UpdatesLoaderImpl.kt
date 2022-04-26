@@ -3,11 +3,11 @@ package update
 import com.google.cloud.storage.Bucket
 import com.google.cloud.storage.Storage
 import di.AppParameters
-import di.applicationDataDirectory
 import di.version
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import utils.AppDataFolder
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -31,7 +31,7 @@ class UpdatesLoaderImpl(
     override fun deleteLocalUpdateFiles() {
         launch(Dispatchers.IO) {
             val currentVersion = appParameters.version
-            val files = applicationDataDirectory.listFiles { _, name ->
+            val files = AppDataFolder.listFiles { _, name ->
                 val matches = updateFilesRegex.matchEntire(name) ?: return@listFiles false
                 if (currentVersion < matches.groups["version"]!!.value) return@listFiles false
                 true
@@ -44,7 +44,7 @@ class UpdatesLoaderImpl(
 
     private suspend fun getLocalUpdateFile(currentVersion: String): UpdateData.Local? {
         return withContext(Dispatchers.IO) {
-            val localFiles = applicationDataDirectory.listFiles { _, name -> name.matches(updateFilesRegex) } ?: emptyArray()
+            val localFiles = AppDataFolder.listFiles { _, name -> name.matches(updateFilesRegex) } ?: emptyArray()
             localFiles
                 .mapNotNull {
                     val version = updateFilesRegex.matchEntire(it.name)
@@ -105,7 +105,7 @@ class UpdatesLoaderImpl(
         launch(Dispatchers.IO) {
             _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.Downloading(remoteUpdateData, 0L)
             val buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
-            val targetFile = File(applicationDataDirectory, remoteUpdateData.fileName).also { it.createNewFile() }
+            val targetFile = File(AppDataFolder, remoteUpdateData.fileName).also { it.createNewFile() }
             val writer = FileOutputStream(targetFile)
             val reader = firebaseBucket.storage.reader(
                 remoteUpdateData.file.blobId,
