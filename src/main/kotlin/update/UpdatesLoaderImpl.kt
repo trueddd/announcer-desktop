@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import utils.AppDataFolder
 import java.io.File
 import java.io.FileOutputStream
-import java.nio.ByteBuffer
 import kotlin.coroutines.CoroutineContext
 
 class UpdatesLoaderImpl(
@@ -103,41 +102,25 @@ class UpdatesLoaderImpl(
 
     override fun loadUpdate(remoteUpdateData: UpdateData.Remote) {
         launch(Dispatchers.IO) {
-            _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.Downloading(remoteUpdateData, 0L)
-            val buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
+            _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.Downloading(remoteUpdateData, 0)
             val targetFile = File(AppDataFolder, remoteUpdateData.fileName).also { it.createNewFile() }
             val writer = FileOutputStream(targetFile)
-            val reader = firebaseBucket.storage.reader(
-                remoteUpdateData.file.blobId,
-                Storage.BlobSourceOption.shouldReturnRawInputStream(true)
-            )
+            var sizeCheckJob: Job? = null
             try {
-                var totalWritten = 0L
-                var read: Int
-                while (reader.read(buffer).also { read = it } >= 0) {
-                    writer.write(buffer.array().copyOf(read))
-                    totalWritten += read
-                    _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.Downloading(remoteUpdateData, totalWritten)
-                    read = 0
-                    buffer.clear()
+                sizeCheckJob = launch {
+                    while (true) {
+                        delay(2000)
+                        _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.Downloading(remoteUpdateData, targetFile.length().toInt())
+                    }
                 }
-                if (totalWritten == remoteUpdateData.file.size) {
-                    _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.ReadyToUpdate(UpdateData.Local(targetFile, remoteUpdateData.version))
-                } else {
-                    _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.DownloadError(
-                        remoteUpdateData,
-                        IllegalStateException("Size control failure. Required: ${remoteUpdateData.file.size}, given: $totalWritten")
-                    )
-                    targetFile.delete()
-                }
+                remoteUpdateData.file.downloadTo(writer)
+                _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.ReadyToUpdate(UpdateData.Local(targetFile, remoteUpdateData.version))
             } catch (e: Exception) {
                 e.printStackTrace()
-                targetFile.delete()
                 _updateAvailabilityFlow.value = UpdateAvailability.HasUpdate.DownloadError(remoteUpdateData, e)
             } finally {
-                buffer.clear()
+                sizeCheckJob?.cancel()
                 writer.close()
-                reader.close()
             }
         }
     }

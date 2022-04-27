@@ -9,7 +9,6 @@ import com.google.firebase.cloud.StorageClient
 import db.DiscordRepository
 import db.TelegramRepository
 import io.ktor.client.*
-import io.ktor.client.engine.java.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import io.ktor.client.features.logging.*
@@ -35,7 +34,7 @@ val repositoryModule = module {
 val appModule = module {
 
     single {
-        HttpClient(Java) {
+        HttpClient {
             install(Logging) {
                 logger = Logger.SIMPLE
                 level = LogLevel.BODY
