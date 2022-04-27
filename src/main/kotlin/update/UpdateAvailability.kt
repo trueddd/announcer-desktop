@@ -12,7 +12,7 @@ sealed class UpdateAvailability {
 
         data class ReadyToDownload(override val updateData: UpdateData.Remote) : HasUpdate(updateData)
 
-        data class Downloading(override val updateData: UpdateData.Remote, val downloaded: Long) : HasUpdate(updateData)
+        data class Downloading(override val updateData: UpdateData.Remote, val downloaded: Int) : HasUpdate(updateData)
 
         data class DownloadError(override val updateData: UpdateData.Remote, val cause: Throwable) : HasUpdate(updateData)
 
