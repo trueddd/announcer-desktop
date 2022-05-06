@@ -14,6 +14,7 @@ import androidx.compose.ui.res.useResource
 import db.AppDatabase
 import di.appModule
 import di.repositoryModule
+import di.viewModelModule
 import navigation.MainNavigator
 import org.koin.core.context.startKoin
 import utils.AppColor
@@ -29,7 +30,7 @@ class SplashFragment(
             repositoryModule.single(createdAtStart = true) { AppDatabase.instance!! }
             appModule.single(createdAtStart = true) { navigator.appParameters }
             startKoin {
-                modules(*di.modules)
+                modules(appModule, repositoryModule, viewModelModule)
             }
             navigator.main()
         }

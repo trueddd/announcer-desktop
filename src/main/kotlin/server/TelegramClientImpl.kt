@@ -20,7 +20,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.coroutines.CoroutineContext
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class TelegramClientImpl(
     private val telegramRepository: TelegramRepository,
 ) : TelegramClient, CoroutineScope {

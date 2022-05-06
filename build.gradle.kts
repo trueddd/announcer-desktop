@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version Versions.Kotlin
-    id("org.jetbrains.compose") version "1.1.0"
+    id("org.jetbrains.compose") version Versions.Compose
     id("org.jetbrains.kotlin.plugin.serialization") version Versions.Kotlin
 }
 
@@ -20,29 +20,29 @@ repositories {
 }
 
 dependencies {
+    // core dependencies
     implementation(compose.desktop.currentOs)
     implementation(compose.uiTooling)
-    implementation(ktor("ktor-server-core"))
-    implementation(ktor("ktor-serialization"))
-    implementation(ktor("ktor-server-netty"))
-    implementation(ktor("ktor-client-core"))
-    implementation(ktor("ktor-client-java"))
-    implementation(ktor("ktor-client-serialization"))
-    implementation(ktor("ktor-client-logging"))
-    implementation("io.insert-koin:koin-core:3.1.5")
-
-    implementation(exposed("exposed-core"))
-    implementation(exposed("exposed-dao"))
-    implementation(exposed("exposed-jdbc"))
-    implementation(exposed("exposed-java-time"))
-    implementation("com.h2database:h2:1.4.199")
-
-    implementation("dev.kord:kord-core:0.8.0-M8")
-    implementation("dev.inmo:tgbotapi:0.38.7")
-
-    implementation("com.google.firebase:firebase-admin:8.1.0")
-
-    testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+    implementation(Dependency.Ktor.Serialization)
+    implementation(Dependency.Ktor.Client.Core)
+    implementation(Dependency.Ktor.Client.Java)
+    implementation(Dependency.Ktor.Client.Serialization)
+    implementation(Dependency.Ktor.Client.Logging)
+    implementation(Dependency.Ktor.Server.Core)
+    implementation(Dependency.Ktor.Server.Netty)
+    implementation(Dependency.Koin.Core)
+    // database dependencies
+    implementation(Dependency.Exposed.Core)
+    implementation(Dependency.Exposed.Dao)
+    implementation(Dependency.Exposed.Jdbc)
+    implementation(Dependency.Exposed.JavaTime)
+    implementation(Dependency.H2)
+    // service integrations dependencies
+    implementation(Dependency.Kord.Core)
+    implementation(Dependency.TelegramBotApi)
+    implementation(Dependency.Firebase.Admin)
+    // test dependencies
+    testImplementation(Dependency.Junit.Jupiter)
 }
 
 tasks.withType<KotlinCompile>().configureEach {
